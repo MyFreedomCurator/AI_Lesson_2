@@ -20,12 +20,13 @@ async function sendToGoogleSheets(username, taskId, answerText, fileInputs) {
     files: files
   };
 
-  const response = await fetch(APP_CONFIG.googleScriptURL, {
-    method: "POST",
-    // Важно: не FormData, а JSON-строка — так Apps Script надёжнее парсит
-    body: JSON.stringify(payload),
-    headers: { "Content-Type": "text/plain" } // чтобы избежать CORS-preflight
-  });
+ // js/sheets.js
+const response = await fetch(APP_CONFIG.googleScriptURL, {
+  method: "POST",
+  body: JSON.stringify(payload),
+  // Убираем заголовки вообще, чтобы браузер отправил запрос как "простой" POST
+  // headers: { "Content-Type": "text/plain" } 
+});
 
   if (!response.ok) throw new Error("Ошибка сети");
   return response.json();
