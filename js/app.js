@@ -32,7 +32,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const reader = new FileReader();
     reader.onload = (ev) => {
       const dataUrl = ev.target.result;
-      // Аватар хранится отдельно для каждого пользователя
       localStorage.setItem(`avatar_${currentUser}`, dataUrl);
       applyAvatar(dataUrl);
     };
@@ -51,10 +50,8 @@ function enterDashboard(name) {
   document.getElementById("dashboardScreen").classList.remove("hidden");
   document.getElementById("displayName").textContent = name;
 
-  // Загружаем прогресс пользователя
   loadUserProgress();
 
-  // Загружаем аватар
   const avatar = localStorage.getItem(`avatar_${name}`);
   if (avatar) applyAvatar(avatar);
 
@@ -90,7 +87,6 @@ function renderProgressBars() {
   container.innerHTML = "";
 
   APP_CONFIG.progressBars.forEach(bar => {
-    // Вычисляем текущее значение: суммируем rewards всех выполненных заданий
     let value = 0;
     APP_CONFIG.tasks.forEach(task => {
       if (completedTasks.includes(task.id) && task.rewards[bar.id]) {
@@ -122,20 +118,18 @@ function renderTasks() {
 
     const card = document.createElement("div");
     card.className = "task-card";
-    
+
     if (isCompleted) card.classList.add("completed");
     else if (isUnlocked) card.classList.add("unlocked");
     else card.classList.add("locked");
 
-    // Иконка замка
     const lockIcon = isUnlocked || isCompleted ? "lock-open.png" : "lock-closed.png";
-    
+
     card.innerHTML = `
       <img src="images/${lockIcon}" alt="lock" class="lock-icon">
       <span class="task-title">${task.title}</span>
     `;
 
-    // Клик работает только для разблокированных и невыполненных заданий
     if (isUnlocked && !isCompleted) {
       card.addEventListener("click", () => openTaskModal(task));
     } else if (isCompleted) {
@@ -167,10 +161,10 @@ function closeModal() {
   currentTask = null;
 }
 
-// ===== Отправка задания (вызывается из sheets.js) =====
+// ===== Отправка задания через скрытый iframe =====
 async function submitTask() {
   if (!currentTask) return;
-  
+
   const answerText = document.getElementById("answerInput").value.trim();
   if (!answerText) return alert("Сначала введите ответ");
 
@@ -182,16 +176,36 @@ async function submitTask() {
   document.getElementById("submitStatus").textContent = "Отправка...";
 
   try {
-    await sendToGoogleSheets(currentUser, currentTask.id, answerText, fileInputs);
-    
-    // Отмечаем как выполненное
+    // Собираем файлы в base64 (та же функция fileToBase64 из sheets.js)
+    const files = [];
+    for (const input of fileInputs) {
+      const file = input.files[0];
+      if (file) {
+        const base64 = await fileToBase64(file);
+        files.push({ name: file.name, data: base64 });
+      } else {
+        files.push(null);
+      }
+    }
+
+    const payload = {
+      username: currentUser,
+      taskId: currentTask.id,
+      answerText: answerText,
+      files: files
+    };
+
+    // Отправляем через скрытый iframe (обходит CORS)
+    sendViaIframe(payload);
+
+    // Отмечаем как выполненное (оптимистично, без подтверждения от Google)
     if (!completedTasks.includes(currentTask.id)) {
       completedTasks.push(currentTask.id);
       saveUserProgress();
     }
 
     document.getElementById("submitStatus").textContent = "Успешно отправлено!";
-    
+
     setTimeout(() => {
       closeModal();
       renderProgressBars();
@@ -202,4 +216,50 @@ async function submitTask() {
     console.error(err);
     document.getElementById("submitStatus").textContent = "Ошибка отправки, попробуйте ещё раз.";
   }
+}
+
+// ===== Отправка через iframe =====
+function sendViaIframe(payload) {
+  // Создаём/переиспользуем скрытый iframe
+  let iframe = document.getElementById("hidden_iframe");
+  if (!iframe) {
+    iframe = document.createElement("iframe");
+    iframe.name = "hidden_iframe";
+    iframe.id = "hidden_iframe";
+    iframe.style.display = "none";
+    document.body.appendChild(iframe);
+  }
+
+  // Создаём форму
+  const form = document.createElement("form");
+  form.method = "POST";
+  form.action = APP_CONFIG.googleScriptURL;
+  form.target = "hidden_iframe";
+  form.style.display = "none";
+
+  // Кладём payload как одно скрытое поле
+  const input = document.createElement("input");
+  input.type = "hidden";
+  input.name = "payload";
+  input.value = JSON.stringify(payload);
+  form.appendChild(input);
+
+  document.body.appendChild(form);
+  form.submit();
+
+  // Убираем форму из DOM после отправки
+  setTimeout(() => document.body.removeChild(form), 1000);
+}
+
+// ===== Конвертация файла в Base64 =====
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const base64 = reader.result.split(",")[1];
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
 }
