@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Личный учебный центр</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- ========== Экран входа ========== -->
+  <div id="loginScreen" class="screen">
+    <div class="login-box">
+      <h1>Добро пожаловать</h1>
+      <p>Введите ваше имя, чтобы войти в учебный центр</p>
+      <input type="text" id="usernameInput" placeholder="Ваше имя" maxlength="20">
+      <button id="enterBtn">Войти</button>
+    </div>
+  </div>
+
+  <!-- ========== Личный кабинет ========== -->
+  <div id="dashboardScreen" class="screen hidden">
+    
+    <!-- Верхняя часть: аватар + имя + прогрессбары -->
+    <header class="dashboard-header">
+      <div class="avatar-section">
+        <div class="avatar-wrapper" id="avatarWrapper">
+          <img id="avatarImg" src="" alt="Аватар" class="hidden">
+          <div id="avatarPlaceholder" class="avatar-placeholder">?</div>
+        </div>
+        <input type="file" id="avatarInput" accept="image/*" hidden>
+        <button id="uploadAvatarBtn" class="small-btn">Загрузить аватар</button>
+      </div>
+
+      <div class="user-info">
+        <h2 id="displayName"></h2>
+        <div id="progressBarsContainer"></div>
+      </div>
+    </header>
+
+    <!-- Сетка заданий -->
+    <main class="tasks-container">
+      <h3>Список заданий</h3>
+      <div id="tasksGrid" class="tasks-grid"></div>
+    </main>
+
+    <!-- Модальное окно задания -->
+    <div id="taskModal" class="modal hidden">
+      <div class="modal-content">
+        <span id="closeModalBtn" class="close-btn">&times;</span>
+        <h3 id="modalTitle"></h3>
+        <p id="modalDescription"></p>
+        <textarea id="answerInput" placeholder="Введите ваш ответ здесь..."></textarea>
+        
+        <div class="file-upload-row">
+          <label for="fileInput1">Вложение 1:</label>
+          <input type="file" id="fileInput1">
+        </div>
+        <div class="file-upload-row">
+          <label for="fileInput2">Вложение 2:</label>
+          <input type="file" id="fileInput2">
+        </div>
+
+        <button id="submitTaskBtn">Отправить ответ</button>
+        <p id="submitStatus"></p>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="js/config.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/sheets.js"></script>
+</body>
+</html>
